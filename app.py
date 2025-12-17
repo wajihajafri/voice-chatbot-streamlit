@@ -9,8 +9,8 @@ import soundfile as sf
 
 # ========= CONFIG =========
 # In deployment, read these from Streamlit secrets.
-ASSEMBLYAI_API_KEY = st.secrets["1169573ba261431c8104fc6deb3fcb42"]
-OPENAI_API_KEY = st.secrets["sk-proj-D22xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"]
+ASSEMBLYAI_API_KEY = st.secrets["ASSEMBLYAI_API_KEY"]
+OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 
 aai.settings.api_key = ASSEMBLYAI_API_KEY
 
@@ -91,4 +91,3 @@ if process and audio_data is not None:
 
 elif process and audio_data is None:
     st.warning("Please record audio first.")
-
