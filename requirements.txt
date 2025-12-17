@@ -5,3 +5,4 @@ torch
 elevenlabs
 soundfile
 openai
+streamlit-webrtc
