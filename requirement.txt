@@ -1,7 +1,0 @@
-streamlit
-assemblyai
-transformers
-torch
-elevenlabs
-soundfile
-
