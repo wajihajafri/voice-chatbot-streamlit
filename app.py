@@ -43,18 +43,14 @@ def get_openai_client():
 
 openai_client = get_openai_client()
 
-
 def tts_wav(text: str) -> bytes:
-    # OpenAI Audio API, GPT‑4o mini TTS model
     resp = openai_client.audio.speech.create(
         model="gpt-4o-mini-tts",
         voice="alloy",
         input=text,
-        format="wav",
+        response_format="wav",   # <-- instead of format="wav"
     )
-    # resp is a streaming object; read() returns WAV bytes
     return resp.read()
-
 
 # ========= STT (AssemblyAI, simple file mode) =========
 def transcribe_with_assemblyai(wav_bytes: bytes) -> str:
@@ -91,3 +87,4 @@ if process and audio_data is not None:
 
 elif process and audio_data is None:
     st.warning("Please record audio first.")
+
