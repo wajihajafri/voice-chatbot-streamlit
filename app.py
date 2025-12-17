@@ -4,16 +4,13 @@ import time
 import streamlit as st
 import assemblyai as aai
 from transformers import pipeline
-from elevenlabs.client import ElevenLabs
+from openai import OpenAI
 import soundfile as sf
 
-
 # ========= CONFIG =========
-# In deployment, read these from environment variables instead of hardcoding.
-ASSEMBLYAI_API_KEY = "1169573ba261431c8104fc6deb3fcb42"
-ELEVENLABS_API_KEY = "sk_f4c9b0c67aa7e625a53c3ac4c9fda85a0f7b9608a171b2ab"
-ELEVEN_VOICE_ID = "EXAVITQu4vr4xnSDxMaL"
-ELEVEN_MODEL_ID = "eleven_multilingual_v2"
+# In deployment, read these from Streamlit secrets.
+ASSEMBLYAI_API_KEY = st.secrets["1169573ba261431c8104fc6deb3fcb42"]
+OPENAI_API_KEY = st.secrets["sk-proj-D22xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"]
 
 aai.settings.api_key = ASSEMBLYAI_API_KEY
 
@@ -39,50 +36,35 @@ def chat_response(user_text: str) -> str:
     return out[0]["generated_text"].strip()
 
 
-# ========= TTS (ElevenLabs to WAV bytes) =========
+# ========= TTS (OpenAI to WAV bytes) =========
 @st.cache_resource
-def get_eleven_client():
-    return ElevenLabs(api_key=ELEVENLABS_API_KEY)
+def get_openai_client():
+    return OpenAI(api_key=OPENAI_API_KEY)
 
-eleven_client = get_eleven_client()
+openai_client = get_openai_client()
 
 
-def elevenlabs_tts_wav(text: str) -> bytes:
-    # 1) Request audio from ElevenLabs (generator of bytes chunks)
-    audio_stream = eleven_client.text_to_speech.convert(
-        voice_id=ELEVEN_VOICE_ID,
-        text=text,
-        model_id=ELEVEN_MODEL_ID,
-        output_format="pcm_22050",
+def tts_wav(text: str) -> bytes:
+    # OpenAI Audio API, GPT‑4o mini TTS model
+    resp = openai_client.audio.speech.create(
+        model="gpt-4o-mini-tts",
+        voice="alloy",
+        input=text,
+        format="wav",
     )
-
-    # 2) Concatenate chunks
-    audio_bytes = b"".join(chunk for chunk in audio_stream)
-
-    # 3) Decode raw PCM to WAV bytes for Streamlit
-    data, samplerate = sf.read(
-        io.BytesIO(audio_bytes),
-        dtype="float32",
-        samplerate=22050,
-        channels=1,
-        format="RAW",
-        subtype="PCM_16",
-    )
-
-    buf = io.BytesIO()
-    sf.write(buf, data, samplerate, format="WAV")
-    return buf.getvalue()
+    # resp is a streaming object; read() returns WAV bytes
+    return resp.read()
 
 
 # ========= STT (AssemblyAI, simple file mode) =========
 def transcribe_with_assemblyai(wav_bytes: bytes) -> str:
     transcriber = aai.Transcriber()
-    # Binary data is supported directly by transcribe()
     transcript = transcriber.transcribe(wav_bytes)
     return transcript.text or ""
 
+
 # ========= STREAMLIT UI =========
-st.title("Voice Chatbot (AssemblyAI + FLAN‑T5 + ElevenLabs)")
+st.title("Voice Chatbot (AssemblyAI + FLAN‑T5 + OpenAI TTS)")
 
 st.markdown(
     "1. Click below to record your voice.\n"
@@ -104,7 +86,9 @@ if process and audio_data is not None:
     st.write(f"**Bot:** {reply}")
 
     with st.spinner("Speaking reply..."):
-        reply_wav = elevenlabs_tts_wav(reply)
+        reply_wav = tts_wav(reply)
     st.audio(reply_wav, format="audio/wav")
+
 elif process and audio_data is None:
     st.warning("Please record audio first.")
+
